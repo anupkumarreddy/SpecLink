@@ -1,0 +1,63 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SpecLink{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] } } } }
+  </script>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+  <div class="min-h-screen">
+    <aside class="fixed inset-y-0 start-0 z-20 hidden w-64 border-e border-gray-200 bg-white lg:block">
+      <div class="flex h-16 items-center border-b border-gray-200 px-6">
+        <a href="{% url 'dashboard' %}" class="text-lg font-semibold tracking-tight text-gray-900">SpecLink</a>
+      </div>
+      <nav class="space-y-1 p-4 text-sm">
+        <a class="block rounded-lg px-3 py-2 hover:bg-gray-100" href="{% url 'dashboard' %}">Dashboard</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-gray-100" href="{% url 'project_list' %}">Projects</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-gray-100" href="{% url 'category_tree' %}">Categories</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-gray-100" href="{% url 'requirement_list' %}">Requirements</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-gray-100" href="{% url 'test_list' %}">Tests</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-gray-100" href="{% url 'check_list' %}">Checks</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-gray-100" href="{% url 'mapping_page' %}">Mappings</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-gray-100" href="{% url 'generate_package' %}">Generate SV</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-gray-100" href="{% url 'evidence_upload' %}">Evidence Upload</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-gray-100" href="/admin/">Admin</a>
+      </nav>
+    </aside>
+
+    <div class="lg:ps-64">
+      <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-gray-200 bg-white/95 px-4 backdrop-blur lg:px-8">
+        <div>
+          <p class="text-xs font-medium uppercase text-gray-500">DV verification closure</p>
+          <h1 class="text-sm font-semibold text-gray-900">{% block page_title %}SpecLink{% endblock %}</h1>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="{% url 'project_create' %}" class="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50">New Project</a>
+          <a href="{% url 'export_requirements_csv' %}" class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">Export CSV</a>
+        </div>
+      </header>
+
+      <main class="p-4 lg:p-8">
+        {% if messages %}
+          <div class="mb-5 space-y-2">
+            {% for message in messages %}
+              <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  <script src="https://unpkg.com/preline@latest/dist/preline.js"></script>
+</body>
+</html>
+

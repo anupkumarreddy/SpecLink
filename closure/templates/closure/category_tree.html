@@ -1,0 +1,16 @@
+{% extends "closure/base.html" %}
+{% block page_title %}Requirement Categories{% endblock %}
+{% block content %}
+<div class="rounded-lg border border-gray-200 bg-white">
+  <div class="border-b border-gray-200 px-5 py-4"><h2 class="font-semibold">Category Tree</h2></div>
+  <div class="divide-y divide-gray-200">
+    {% for category in categories %}
+      <div class="flex items-center justify-between px-5 py-3 text-sm">
+        <div><span class="font-mono text-gray-500">{{ category.code }}</span> <span class="font-medium">{{ category.name }}</span>{% if category.parent %}<span class="text-gray-400"> under {{ category.parent.code }}</span>{% endif %}</div>
+        <span class="text-gray-500">{{ category.requirement_count }} requirements</span>
+      </div>
+    {% empty %}<p class="px-5 py-6 text-sm text-gray-500">No categories yet. Add them in admin or while creating requirements.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}
+

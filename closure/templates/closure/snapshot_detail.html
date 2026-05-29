@@ -1,0 +1,15 @@
+{% extends "closure/base.html" %}
+{% block page_title %}Closure Snapshot{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <div class="grid gap-4 md:grid-cols-5">
+    {% include "closure/partials/stat_card.html" with label="Closure" value=snapshot.closure_percent %}
+    {% include "closure/partials/stat_card.html" with label="Closed" value=snapshot.closed_requirements %}
+    {% include "closure/partials/stat_card.html" with label="Partial" value=snapshot.partial_requirements %}
+    {% include "closure/partials/stat_card.html" with label="Failed" value=snapshot.failed_requirements %}
+    {% include "closure/partials/stat_card.html" with label="Open" value=snapshot.open_requirements %}
+  </div>
+  <section class="rounded-lg border border-gray-200 bg-white"><h2 class="border-b px-5 py-4 font-semibold">Requirements</h2><div class="divide-y">{% for item in evidence %}<div class="flex justify-between px-5 py-3 text-sm"><a class="text-blue-600" href="{{ item.requirement.get_absolute_url }}">{{ item.requirement.requirement_id }}</a>{% include "closure/partials/badge.html" with value=item.status %}</div>{% endfor %}</div></section>
+</div>
+{% endblock %}
+

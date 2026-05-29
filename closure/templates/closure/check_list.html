@@ -1,0 +1,9 @@
+{% extends "closure/base.html" %}
+{% block page_title %}Checks{% endblock %}
+{% block content %}
+<div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+  <div class="flex items-center justify-between border-b px-5 py-4"><h2 class="font-semibold">Checks</h2><a class="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white" href="{% url 'check_create' %}">Create</a></div>
+  <table class="min-w-full divide-y divide-gray-200 text-sm"><thead class="bg-gray-50 text-left text-xs uppercase text-gray-500"><tr><th class="px-5 py-3">Check</th><th class="px-5 py-3">Test</th><th class="px-5 py-3">Type</th><th class="px-5 py-3">Required</th><th class="px-5 py-3">Requirements</th></tr></thead><tbody class="divide-y divide-gray-200">{% for check in checks %}<tr><td class="px-5 py-3"><a class="font-medium text-blue-600" href="{{ check.get_absolute_url }}">{{ check.check_id }}</a></td><td class="px-5 py-3">{{ check.test.test_id }}</td><td class="px-5 py-3">{{ check.check_type }}</td><td class="px-5 py-3">{{ check.required_by_default }}</td><td class="px-5 py-3">{{ check.requirement_count }}</td></tr>{% empty %}<tr><td class="px-5 py-6 text-gray-500" colspan="5">No checks yet.</td></tr>{% endfor %}</tbody></table>
+</div>
+{% endblock %}
+

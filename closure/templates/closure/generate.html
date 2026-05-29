@@ -1,0 +1,15 @@
+{% extends "closure/base.html" %}
+{% block page_title %}Generate SystemVerilog Package{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <section class="rounded-lg border border-gray-200 bg-white p-5">
+    <form method="post" class="grid gap-4 md:grid-cols-3">{% csrf_token %}
+      <select name="project" class="rounded-lg border-gray-200 px-3 py-2 text-sm">{% for project in projects %}<option value="{{ project.pk }}">{{ project.name }}</option>{% endfor %}</select>
+      <input name="notes" class="rounded-lg border-gray-200 px-3 py-2 text-sm" placeholder="Notes">
+      <button class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white">Generate and Download</button>
+    </form>
+  </section>
+  <section class="rounded-lg border border-gray-200 bg-white"><h2 class="border-b px-5 py-4 font-semibold">Package History</h2><div class="divide-y">{% for package in packages %}<div class="flex justify-between px-5 py-3 text-sm"><span>{{ package.project.slug }} {{ package.version }} · {{ package.generated_at }}</span><a class="text-blue-600" href="{% url 'download_package' package.pk %}">Download</a></div>{% empty %}<p class="px-5 py-5 text-sm text-gray-500">No packages generated.</p>{% endfor %}</div></section>
+</div>
+{% endblock %}
+

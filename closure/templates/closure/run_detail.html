@@ -1,0 +1,19 @@
+{% extends "closure/base.html" %}
+{% block page_title %}Run {{ run.run_id }}{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <div class="grid gap-4 md:grid-cols-5">
+    {% include "closure/partials/stat_card.html" with label="Closure" value=snapshot.closure_percent|default:"0.00" %}
+    {% include "closure/partials/stat_card.html" with label="Closed" value=snapshot.closed_requirements|default:0 %}
+    {% include "closure/partials/stat_card.html" with label="Partial" value=snapshot.partial_requirements|default:0 %}
+    {% include "closure/partials/stat_card.html" with label="Failed" value=snapshot.failed_requirements|default:0 %}
+    {% include "closure/partials/stat_card.html" with label="Open" value=snapshot.open_requirements|default:0 %}
+  </div>
+  <section class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+    <h2 class="border-b px-5 py-4 font-semibold">Requirement Closure</h2>
+    <table class="min-w-full divide-y divide-gray-200 text-sm"><thead class="bg-gray-50 text-left text-xs uppercase text-gray-500"><tr><th class="px-5 py-3">Requirement</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Checks</th><th class="px-5 py-3">Tests</th></tr></thead><tbody class="divide-y divide-gray-200">{% for item in requirement_evidence %}<tr><td class="px-5 py-3"><a class="text-blue-600" href="{{ item.requirement.get_absolute_url }}">{{ item.requirement.requirement_id }}</a></td><td class="px-5 py-3">{% include "closure/partials/badge.html" with value=item.status %}</td><td class="px-5 py-3">{{ item.passed_checks_count }}/{{ item.expected_checks_count }} passed, {{ item.missing_checks_count }} missing</td><td class="px-5 py-3">{{ item.passed_tests_count }}/{{ item.expected_tests_count }} passed</td></tr>{% empty %}<tr><td class="px-5 py-6 text-gray-500" colspan="4">No closure evidence computed.</td></tr>{% endfor %}</tbody></table>
+  </section>
+  <section class="rounded-lg border border-gray-200 bg-white"><h2 class="border-b px-5 py-4 font-semibold">Failed or Missing Checks</h2><div class="divide-y">{% for item in failed_checks %}<div class="px-5 py-3 text-sm">{{ item.test_run.test_name }} · {{ item.requirement.requirement_id }} · {{ item.check_id }} {% include "closure/partials/badge.html" with value=item.result %}</div>{% empty %}<p class="px-5 py-5 text-sm text-gray-500">No failed or missing checks recorded.</p>{% endfor %}</div></section>
+</div>
+{% endblock %}
+

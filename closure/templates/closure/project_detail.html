@@ -1,0 +1,17 @@
+{% extends "closure/base.html" %}
+{% block page_title %}{{ project.name }}{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <div class="rounded-lg border border-gray-200 bg-white p-5">
+    <h2 class="text-lg font-semibold">{{ project.name }}</h2>
+    <p class="mt-1 text-sm text-gray-500">{{ project.description }}</p>
+  </div>
+  <div class="grid gap-4 md:grid-cols-4">
+    {% include "closure/partials/stat_card.html" with label="Requirements" value=project.requirements.count %}
+    {% include "closure/partials/stat_card.html" with label="Tests" value=project.tests.count %}
+    {% include "closure/partials/stat_card.html" with label="Checks" value=project.checks.count %}
+    {% include "closure/partials/stat_card.html" with label="Closure" value=latest_snapshot.closure_percent|default:"0.00" %}
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,14 @@
+{% extends "closure/base.html" %}
+{% block page_title %}Projects{% endblock %}
+{% block content %}
+<div class="rounded-lg border border-gray-200 bg-white">
+  <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+    <h2 class="font-semibold">Projects</h2><a class="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white" href="{% url 'project_create' %}">Create</a>
+  </div>
+  <table class="min-w-full divide-y divide-gray-200 text-sm">
+    <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500"><tr><th class="px-5 py-3">Name</th><th class="px-5 py-3">Slug</th><th class="px-5 py-3">Description</th></tr></thead>
+    <tbody class="divide-y divide-gray-200">{% for project in projects %}<tr><td class="px-5 py-3"><a class="font-medium text-blue-600" href="{{ project.get_absolute_url }}">{{ project.name }}</a></td><td class="px-5 py-3">{{ project.slug }}</td><td class="px-5 py-3 text-gray-500">{{ project.description|truncatechars:90 }}</td></tr>{% empty %}<tr><td class="px-5 py-6 text-gray-500" colspan="3">Create a project to begin.</td></tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endblock %}
+

@@ -1,4 +1,8 @@
-<div class="flex h-full flex-col items-center justify-center p-6 text-center text-xs text-gray-400">
-  <div class="text-2xl">→</div>
-  <p class="mt-2">Related items appear here.</p>
+{% load workbench_tags %}
+<div class="flex h-full flex-col items-center justify-center p-6 text-center">
+  <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-400 ring-1 ring-slate-200/70">
+    {% icon "link" "h-5 w-5" %}
+  </div>
+  <p class="mt-3 text-xs font-medium text-slate-600">Related items</p>
+  <p class="mt-1 text-[11px] leading-relaxed text-slate-400">Select a node to see its related tests, checks, and evidence here.</p>
 </div>

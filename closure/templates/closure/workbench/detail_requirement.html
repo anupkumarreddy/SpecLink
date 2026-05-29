@@ -1,125 +1,192 @@
 {% load workbench_tags %}
-<div class="rounded-xl bg-white p-6 shadow-sm">
-  <div class="mb-4 flex items-start justify-between gap-4 border-b border-gray-200 pb-4">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Requirement</p>
-      <h2 class="mt-0.5 text-xl font-semibold text-gray-900">{{ requirement.requirement_id }}</h2>
-      <p class="mt-1 text-sm text-gray-600">{{ requirement.title }}</p>
-      <div class="mt-2 flex flex-wrap gap-1.5">
-        {% if req_status %}<span class="rounded-full px-2 py-0.5 text-xs font-medium {{ req_status|status_pill }}">{{ req_status }}</span>{% endif %}
-        <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ requirement.priority|status_pill }}">{{ requirement.priority }}</span>
-        <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ requirement.status|status_pill }}">{{ requirement.status }}</span>
+<div class="mx-auto max-w-3xl space-y-4 animate-fade-in">
+  <div class="rounded-2xl border border-slate-200/70 bg-white p-6 shadow-soft">
+    <div class="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
+      <div class="flex items-start gap-3">
+        <div class="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-accent-50 text-accent-600 ring-1 ring-inset ring-accent-600/15">
+          {% icon "doc" "h-5 w-5" %}
+        </div>
+        <div>
+          <p class="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">Requirement</p>
+          <h2 class="mt-0.5 font-mono text-xl font-semibold tracking-tight text-slate-900">{{ requirement.requirement_id }}</h2>
+          <p class="mt-1 text-sm text-slate-600">{{ requirement.title }}</p>
+          <div class="mt-2.5 flex flex-wrap gap-1.5">
+            {% if req_status %}<span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium {{ req_status|status_pill }}">
+              <span class="h-1.5 w-1.5 rounded-full {{ req_status|status_dot }}"></span>{{ req_status }}
+            </span>{% endif %}
+            <span class="rounded-full px-2 py-0.5 text-[11px] font-medium {{ requirement.priority|status_pill }}">{{ requirement.priority }}</span>
+            <span class="rounded-full px-2 py-0.5 text-[11px] font-medium {{ requirement.status|status_pill }}">{{ requirement.status }}</span>
+          </div>
+        </div>
       </div>
+      <a href="{{ requirement.get_absolute_url }}" class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-slate-800">
+        Open {% icon "external" "h-3 w-3" %}
+      </a>
     </div>
-    <a href="{{ requirement.get_absolute_url }}" class="text-xs text-gray-500 hover:underline">Open full page →</a>
+
+    <p class="mt-5 whitespace-pre-line text-sm leading-relaxed text-slate-700">{{ requirement.description }}</p>
+
+    <dl class="mt-6 grid gap-x-6 gap-y-4 text-sm md:grid-cols-4">
+      <div>
+        <dt class="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">Category</dt>
+        <dd class="mt-1">
+          <button type="button" @click="$dispatch('wb-select', {node: 'category:{{ requirement.category.pk }}'})" class="font-mono text-accent-600 hover:underline">{{ requirement.category.code }}</button>
+        </dd>
+      </div>
+      <div>
+        <dt class="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">Spec section</dt>
+        <dd class="mt-1 font-mono text-[13px] text-slate-700">{{ requirement.spec_section|default:"—" }}</dd>
+      </div>
+      <div>
+        <dt class="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">Owner</dt>
+        <dd class="mt-1 text-slate-700">{{ requirement.owner|default:"—" }}</dd>
+      </div>
+      <div>
+        <dt class="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">Project</dt>
+        <dd class="mt-1 font-mono text-[13px] text-slate-700">{{ requirement.project.slug }}</dd>
+      </div>
+    </dl>
+
+    {% if requirement.rationale %}
+      <div class="mt-6 border-t border-slate-100 pt-4">
+        <p class="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">Rationale</p>
+        <p class="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-700">{{ requirement.rationale }}</p>
+      </div>
+    {% endif %}
+
+    {% if overlay_active and req_counts %}
+      <div class="mt-6 grid gap-3 sm:grid-cols-2">
+        <div class="rounded-xl border border-slate-200/70 bg-slate-50/50 p-4">
+          <p class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+            {% icon "beaker" "h-3 w-3" %} Tests in {{ run.run_id }}
+          </p>
+          <div class="mt-3 grid grid-cols-3 gap-3 text-center">
+            <div>
+              <p class="text-[10px] font-medium uppercase text-slate-400">Passed</p>
+              <p class="mt-0.5 text-lg font-semibold text-emerald-600">{{ req_counts.passed_tests }}<span class="text-xs text-slate-400">/{{ req_counts.expected_tests }}</span></p>
+            </div>
+            <div>
+              <p class="text-[10px] font-medium uppercase text-slate-400">Failed</p>
+              <p class="mt-0.5 text-lg font-semibold {% if req_counts.failed_tests %}text-rose-600{% else %}text-slate-400{% endif %}">{{ req_counts.failed_tests }}</p>
+            </div>
+            <div>
+              <p class="text-[10px] font-medium uppercase text-slate-400">Missing</p>
+              <p class="mt-0.5 text-lg font-semibold {% if req_counts.missing_tests %}text-amber-600{% else %}text-slate-400{% endif %}">{{ req_counts.missing_tests }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-slate-200/70 bg-slate-50/50 p-4">
+          <p class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+            {% icon "check-circle" "h-3 w-3" %} Checks in {{ run.run_id }}
+          </p>
+          <div class="mt-3 grid grid-cols-3 gap-3 text-center">
+            <div>
+              <p class="text-[10px] font-medium uppercase text-slate-400">Passed</p>
+              <p class="mt-0.5 text-lg font-semibold text-emerald-600">{{ req_counts.passed_checks }}<span class="text-xs text-slate-400">/{{ req_counts.expected_checks }}</span></p>
+            </div>
+            <div>
+              <p class="text-[10px] font-medium uppercase text-slate-400">Failed</p>
+              <p class="mt-0.5 text-lg font-semibold {% if req_counts.failed_checks %}text-rose-600{% else %}text-slate-400{% endif %}">{{ req_counts.failed_checks }}</p>
+            </div>
+            <div>
+              <p class="text-[10px] font-medium uppercase text-slate-400">Missing</p>
+              <p class="mt-0.5 text-lg font-semibold {% if req_counts.missing_checks %}text-amber-600{% else %}text-slate-400{% endif %}">{{ req_counts.missing_checks }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
   </div>
-
-  <p class="text-sm text-gray-700 whitespace-pre-line">{{ requirement.description }}</p>
-
-  <dl class="mt-4 grid gap-3 text-sm md:grid-cols-4">
-    <div><dt class="text-gray-500">Category</dt><dd>
-      <button type="button" @click="$dispatch('wb-select', {node: 'category:{{ requirement.category.pk }}'})" class="text-blue-600 hover:underline">{{ requirement.category.code }}</button>
-    </dd></div>
-    <div><dt class="text-gray-500">Spec section</dt><dd>{{ requirement.spec_section|default:"—" }}</dd></div>
-    <div><dt class="text-gray-500">Owner</dt><dd>{{ requirement.owner|default:"—" }}</dd></div>
-    <div><dt class="text-gray-500">Project</dt><dd>{{ requirement.project.slug }}</dd></div>
-  </dl>
-
-  {% if requirement.rationale %}
-    <p class="mt-4 text-xs font-semibold uppercase text-gray-500">Rationale</p>
-    <p class="mt-1 text-sm text-gray-700 whitespace-pre-line">{{ requirement.rationale }}</p>
-  {% endif %}
-
-  {% if overlay_active and req_counts %}
-    <div class="mt-6 grid gap-3 sm:grid-cols-2">
-      <div class="rounded-lg border border-gray-200 p-3 text-sm">
-        <p class="text-xs font-semibold uppercase text-gray-500">Tests in {{ run.run_id }}</p>
-        <p class="mt-1">Passed: <b>{{ req_counts.passed_tests }}</b> / {{ req_counts.expected_tests }}</p>
-        <p>Failed: <b class="text-red-600">{{ req_counts.failed_tests }}</b></p>
-        <p>Missing: <b class="text-gray-500">{{ req_counts.missing_tests }}</b></p>
-      </div>
-      <div class="rounded-lg border border-gray-200 p-3 text-sm">
-        <p class="text-xs font-semibold uppercase text-gray-500">Checks in {{ run.run_id }}</p>
-        <p class="mt-1">Passed: <b>{{ req_counts.passed_checks }}</b> / {{ req_counts.expected_checks }}</p>
-        <p>Failed: <b class="text-red-600">{{ req_counts.failed_checks }}</b></p>
-        <p>Missing: <b class="text-gray-500">{{ req_counts.missing_checks }}</b></p>
-      </div>
-    </div>
-  {% endif %}
 </div>
 
-<div id="wb-inspector" hx-swap-oob="innerHTML">
-  <section class="border-b border-gray-100 p-4">
+<div id="wb-inspector" hx-swap-oob="innerHTML" class="animate-fade-in">
+  <section class="border-b border-slate-100 p-4">
     <div class="mb-2 flex items-center justify-between">
-      <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Mapped Tests ({{ test_mappings|length }})</h3>
+      <h3 class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+        {% icon "beaker" "h-3 w-3" %}
+        Mapped tests <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">{{ test_mappings|length }}</span>
+      </h3>
       <button type="button"
               hx-get="{% url 'workbench_drawer' action='map_test' %}?{{ link_qs }}&requirement={{ requirement.pk }}"
               hx-target="#wb-drawer" hx-swap="innerHTML"
-              class="rounded px-1.5 text-xs text-blue-600 hover:bg-blue-50">+ Map</button>
+              class="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] text-accent-600 hover:bg-accent-50">
+        {% icon "plus" "h-3 w-3" %} Map
+      </button>
     </div>
-    <ul class="space-y-1 text-sm">
+    <ul class="space-y-0.5">
       {% for m in test_mappings %}
-        <li class="flex items-center justify-between gap-2">
-          <button type="button" @click="$dispatch('wb-select', {node: 'test:{{ m.test.pk }}'})" class="truncate rounded px-2 py-1 text-left font-medium text-blue-600 hover:bg-gray-50">{{ m.test.test_id }}</button>
-          <span class="rounded-full px-2 py-0.5 text-xs {{ m.role|status_pill }}">{{ m.role }}</span>
+        <li class="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+          <button type="button" @click="$dispatch('wb-select', {node: 'test:{{ m.test.pk }}'})"
+                  class="truncate text-left font-mono text-[12.5px] font-medium text-violet-600 hover:underline">{{ m.test.test_id }}</button>
+          <span class="rounded-full px-1.5 py-0.5 text-[10px] font-medium {{ m.role|status_pill }}">{{ m.role }}</span>
         </li>
       {% empty %}
-        <li class="px-2 py-1 text-xs text-gray-400">None mapped.</li>
+        <li class="px-2 py-1.5 text-[11px] italic text-slate-400">None mapped.</li>
       {% endfor %}
     </ul>
   </section>
 
-  <section class="border-b border-gray-100 p-4">
+  <section class="border-b border-slate-100 p-4">
     <div class="mb-2 flex items-center justify-between">
-      <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Mapped Checks ({{ check_mappings|length }})</h3>
+      <h3 class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+        {% icon "check-circle" "h-3 w-3" %}
+        Mapped checks <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">{{ check_mappings|length }}</span>
+      </h3>
       <button type="button"
               hx-get="{% url 'workbench_drawer' action='map_check' %}?{{ link_qs }}&requirement={{ requirement.pk }}"
               hx-target="#wb-drawer" hx-swap="innerHTML"
-              class="rounded px-1.5 text-xs text-blue-600 hover:bg-blue-50">+ Map</button>
+              class="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] text-accent-600 hover:bg-accent-50">
+        {% icon "plus" "h-3 w-3" %} Map
+      </button>
     </div>
-    <ul class="space-y-1 text-sm">
+    <ul class="space-y-0.5">
       {% for m in check_mappings %}
         <li>
-          <button type="button" @click="$dispatch('wb-select', {node: 'check:{{ m.verification_check.pk }}'})" class="w-full truncate rounded px-2 py-1 text-left hover:bg-gray-50">
-            <span class="font-medium text-blue-600">{{ m.verification_check.check_id }}</span>
-            <span class="ml-1 text-xs text-gray-500">{{ m.verification_check.test.test_id }}</span>
+          <button type="button" @click="$dispatch('wb-select', {node: 'check:{{ m.verification_check.pk }}'})"
+                  class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-slate-50">
+            <span class="font-mono text-[12.5px] font-medium text-emerald-600">{{ m.verification_check.check_id }}</span>
+            <span class="truncate text-[11px] text-slate-400">{{ m.verification_check.test.test_id }}</span>
           </button>
         </li>
       {% empty %}
-        <li class="px-2 py-1 text-xs text-gray-400">None mapped.</li>
+        <li class="px-2 py-1.5 text-[11px] italic text-slate-400">None mapped.</li>
       {% endfor %}
     </ul>
   </section>
 
   {% if overlay_active %}
-  <section class="border-b border-gray-100 p-4">
-    <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Check evidence in {{ run.run_id }}</h3>
-    <ul class="space-y-1 text-sm">
+  <section class="border-b border-slate-100 p-4">
+    <h3 class="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+      Check evidence · {{ run.run_id }}
+    </h3>
+    <ul class="space-y-0.5">
       {% for e in run_check_evidence %}
-        <li class="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-gray-50">
-          <span class="truncate">
-            <span class="font-medium">{{ e.check_id }}</span>
-            {% if e.test_run %}<span class="ml-1 text-xs text-gray-500">{{ e.test_run.test_name }}</span>{% endif %}
+        <li class="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+          <span class="flex min-w-0 flex-col">
+            <span class="truncate font-mono text-[12.5px] text-slate-700">{{ e.check_id }}</span>
+            {% if e.test_run %}<span class="truncate text-[10.5px] text-slate-400">{{ e.test_run.test_name }}</span>{% endif %}
           </span>
-          <span class="rounded-full px-2 py-0.5 text-xs {{ e.result|status_pill }}">{{ e.result }}</span>
+          <span class="rounded-full px-1.5 py-0.5 text-[10px] font-medium {{ e.result|status_pill }}">{{ e.result }}</span>
         </li>
       {% empty %}
-        <li class="px-2 py-1 text-xs text-gray-400">No check evidence.</li>
+        <li class="px-2 py-1.5 text-[11px] italic text-slate-400">No check evidence.</li>
       {% endfor %}
     </ul>
   </section>
   {% endif %}
 
   <section class="p-4">
-    <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Recent runs</h3>
-    <ul class="space-y-1 text-sm">
+    <h3 class="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">Recent runs</h3>
+    <ul class="space-y-0.5">
       {% for item in evidence_history %}
-        <li class="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-gray-50">
-          <a href="{{ item.regression_run.get_absolute_url }}" class="truncate text-blue-600 hover:underline">{{ item.regression_run.run_id }}</a>
-          <span class="rounded-full px-2 py-0.5 text-xs {{ item.status|status_pill }}">{{ item.status }}</span>
+        <li class="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+          <a href="{{ item.regression_run.get_absolute_url }}" class="truncate font-mono text-[12.5px] text-accent-600 hover:underline">{{ item.regression_run.run_id }}</a>
+          <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium {{ item.status|status_pill }}">
+            <span class="h-1.5 w-1.5 rounded-full {{ item.status|status_dot }}"></span>{{ item.status }}
+          </span>
         </li>
       {% empty %}
-        <li class="px-2 py-1 text-xs text-gray-400">No evidence yet.</li>
+        <li class="px-2 py-1.5 text-[11px] italic text-slate-400">No evidence yet.</li>
       {% endfor %}
     </ul>
   </section>

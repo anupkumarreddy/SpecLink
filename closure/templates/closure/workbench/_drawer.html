@@ -1,10 +1,11 @@
+{% load workbench_tags %}
 {# Slide-over drawer. Replaces #wb-drawer; closed by clearing #wb-drawer innerHTML. #}
-<div x-data="{ open: true }" x-init="$nextTick(() => open = true)"
+<div x-data="{ open: false }" x-init="$nextTick(() => open = true)"
      class="fixed inset-0 z-50"
      @keydown.escape.window="open = false; setTimeout(() => document.getElementById('wb-drawer').innerHTML='', 200)">
 
-  <div x-show="open" x-transition.opacity
-       class="absolute inset-0 bg-black/30"
+  <div x-show="open" x-transition.opacity.duration.150ms
+       class="absolute inset-0 bg-slate-900/30 backdrop-blur-sm"
        @click="open = false; setTimeout(() => document.getElementById('wb-drawer').innerHTML='', 200)"></div>
 
   <div x-show="open"
@@ -12,36 +13,51 @@
        x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
        x-transition:leave="transition transform ease-in duration-150"
        x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
-       class="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-xl">
-    <div class="flex h-16 items-center justify-between border-b border-gray-200 px-5">
-      <h3 class="text-base font-semibold text-gray-900">{{ title }}</h3>
+       class="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl ring-1 ring-slate-200/70">
+
+    <div class="flex h-14 items-center justify-between border-b border-slate-200 px-5">
+      <div class="flex items-center gap-2">
+        <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-50 text-accent-600 ring-1 ring-inset ring-accent-600/15">
+          {% icon "plus" "h-4 w-4" %}
+        </div>
+        <h3 class="text-sm font-semibold tracking-tight text-slate-900">{{ title }}</h3>
+      </div>
       <button type="button"
               @click="open = false; setTimeout(() => document.getElementById('wb-drawer').innerHTML='', 200)"
-              class="rounded-md p-1 text-gray-500 hover:bg-gray-100">✕</button>
+              class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+        {% icon "x" "h-4 w-4" %}
+      </button>
     </div>
 
     <form hx-post="{{ action_url }}" hx-target="#wb-drawer" hx-swap="innerHTML"
-          class="flex h-[calc(100%-4rem)] flex-col">
+          class="flex h-[calc(100%-3.5rem)] flex-col">
       {% csrf_token %}
-      <div class="flex-1 space-y-4 overflow-auto p-5">
+      <div class="flex-1 space-y-4 overflow-auto px-5 py-5">
         {% if form.non_field_errors %}
-          <div class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{ form.non_field_errors }}</div>
+          <div class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{{ form.non_field_errors }}</div>
         {% endif %}
         {% for field in form %}
-          <div>
-            <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-600">{{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}</label>
+          <div class="space-y-1.5">
+            <label class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-600">
+              {{ field.label }}
+              {% if field.field.required %}<span class="text-rose-500">*</span>{% endif %}
+            </label>
             {{ field }}
-            {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
-            {% if field.errors %}<p class="mt-1 text-xs text-red-600">{{ field.errors|join:", " }}</p>{% endif %}
+            {% if field.help_text %}<p class="text-[11px] text-slate-500">{{ field.help_text }}</p>{% endif %}
+            {% if field.errors %}<p class="text-[11px] text-rose-600">{{ field.errors|join:", " }}</p>{% endif %}
           </div>
         {% endfor %}
       </div>
-      <div class="flex justify-end gap-2 border-t border-gray-200 px-5 py-3">
+      <div class="flex justify-end gap-2 border-t border-slate-200 bg-slate-50/60 px-5 py-3">
         <button type="button"
                 @click="open = false; setTimeout(() => document.getElementById('wb-drawer').innerHTML='', 200)"
-                class="rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium hover:bg-gray-50">Cancel</button>
+                class="rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-soft">
+          Cancel
+        </button>
         <button type="submit"
-                class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">{{ submit_label }}</button>
+                class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-b from-accent-600 to-accent-700 px-3.5 py-1.5 text-sm font-semibold text-white shadow-soft hover:from-accent-700 hover:to-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-100">
+          {{ submit_label }}
+        </button>
       </div>
     </form>
   </div>

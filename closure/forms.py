@@ -15,14 +15,25 @@ from closure.models import (
 
 class TailwindFormMixin:
     field_class = (
-        "py-2 px-3 block w-full border-gray-200 rounded-lg text-sm "
-        "focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none"
+        "block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 "
+        "placeholder:text-slate-400 shadow-soft "
+        "focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-100 "
+        "disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+    )
+    checkbox_class = (
+        "h-4 w-4 rounded border-slate-300 text-accent-600 "
+        "focus:ring-2 focus:ring-accent-200 focus:ring-offset-0"
     )
 
     def _style_fields(self):
         for field in self.fields.values():
-            existing = field.widget.attrs.get("class", "")
-            field.widget.attrs["class"] = f"{existing} {self.field_class}".strip()
+            widget = field.widget
+            existing = widget.attrs.get("class", "")
+            if isinstance(widget, forms.CheckboxInput):
+                new = self.checkbox_class
+            else:
+                new = self.field_class
+            widget.attrs["class"] = f"{existing} {new}".strip()
 
 
 class ProjectForm(TailwindFormMixin, forms.ModelForm):

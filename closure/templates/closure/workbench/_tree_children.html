@@ -1,6 +1,5 @@
-{# Returned from workbench_node_children — fragment of <li> rows for an open parent. #}
 {% if not nodes %}
-  <li class="px-3 py-1 text-xs text-gray-400" style="padding-left: {% widthratio depth 1 12 %}px">Empty</li>
+  <li class="px-3 py-1 text-[11px] italic text-slate-400" style="padding-left: {% widthratio depth 1 14 %}px">Empty</li>
 {% else %}
   {% for node in nodes %}
     {% include "closure/workbench/_tree_node.html" with node=node depth=depth link_qs=link_qs %}

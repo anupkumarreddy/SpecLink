@@ -1,13 +1,23 @@
 {% load workbench_tags %}
 {% if not project %}
-  <p class="p-4 text-sm text-gray-500">Create a project to get started.</p>
+  <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+    <div class="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-white text-slate-400 shadow-soft">
+      {% icon "folder" "h-5 w-5" %}
+    </div>
+    <p class="text-sm font-medium text-slate-700">No project</p>
+    <p class="mt-1 text-xs text-slate-500">Create a project to get started.</p>
+  </div>
 {% elif not nodes %}
-  <div class="p-4 text-sm text-gray-500">
-    {% if view == 'req' %}
-      No categories yet. Use the Django admin to add a category, then a requirement.
-    {% else %}
-      No tests yet.
-    {% endif %}
+  <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+    <div class="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-white text-slate-400 shadow-soft">
+      {% icon "tree" "h-5 w-5" %}
+    </div>
+    <p class="text-sm font-medium text-slate-700">
+      {% if view == 'req' %}No categories yet{% else %}No tests yet{% endif %}
+    </p>
+    <p class="mt-1 text-xs text-slate-500">
+      {% if view == 'req' %}Use Django admin to add a category, then a requirement.{% else %}Add a test from the Workbench.{% endif %}
+    </p>
   </div>
 {% else %}
   <ul class="space-y-0.5">

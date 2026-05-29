@@ -1,0 +1,82 @@
+{% load workbench_tags %}
+{# Renders one tree node + its children container. Lazy-loads children via HTMX on first expand. #}
+{% with kind=node.kind id=node.id %}
+<li x-data="{ open: false, loaded: false }" class="select-none">
+  <div class="group flex items-center gap-1 rounded-md hover:bg-gray-100"
+       :class="$store.wb && $store.wb.selected === '{{ kind }}:{{ id }}' ? 'bg-blue-50 ring-1 ring-blue-200' : ''"
+       style="padding-left: {% widthratio depth 1 12 %}px">
+
+    {% if node.has_children %}
+      <button type="button"
+              class="flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-700"
+              @click="
+                open = !open;
+                if (open && !loaded) {
+                  const url = '{% url 'workbench_node_children' kind=kind pk=id %}?{{ link_qs }}&depth={{ depth|add:1 }}{% if node.parent_requirement_id %}&parent_req={{ node.parent_requirement_id }}{% endif %}';
+                  htmx.ajax('GET', url, {target: $refs.children, swap: 'innerHTML'});
+                  loaded = true;
+                }
+              ">
+        <svg class="h-3 w-3 transition-transform" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M6 6l8 4-8 4V6z"/>
+        </svg>
+      </button>
+    {% else %}
+      <span class="h-5 w-5"></span>
+    {% endif %}
+
+    <button type="button"
+            @click="$dispatch('wb-select', {node: '{{ kind }}:{{ id }}'})"
+            class="flex flex-1 items-center gap-2 py-1.5 pr-2 text-left text-sm">
+      <span class="text-base leading-none">{{ kind|kind_icon }}</span>
+      {% if node.status %}
+        <span class="h-2 w-2 rounded-full {{ node.status|status_dot }}" title="{{ node.status }}"></span>
+      {% endif %}
+      <span class="truncate font-medium text-gray-800">{{ node.label }}</span>
+      {% if node.sublabel %}
+        <span class="ml-1 truncate text-xs text-gray-500">{{ node.sublabel }}</span>
+      {% endif %}
+      {% if node.count %}
+        <span class="ml-auto rounded-full bg-gray-100 px-1.5 text-xs text-gray-500">{{ node.count }}</span>
+      {% endif %}
+    </button>
+
+    {# inline + button for context-appropriate creation #}
+    {% if kind == 'category' %}
+      <button type="button"
+              hx-get="{% url 'workbench_drawer' action='new_requirement' %}?{{ link_qs }}&category={{ id }}"
+              hx-target="#wb-drawer" hx-swap="innerHTML"
+              class="invisible mr-1 rounded px-1.5 text-xs text-blue-600 hover:bg-blue-50 group-hover:visible"
+              title="Add requirement">+</button>
+    {% elif kind == 'requirement' %}
+      <div class="invisible mr-1 group-hover:visible" x-data="{open: false}">
+        <button type="button" @click="open = !open" class="rounded px-1.5 text-xs text-blue-600 hover:bg-blue-50">+</button>
+        <div x-show="open" @click.outside="open = false" class="absolute z-40 mt-1 w-44 rounded-md border border-gray-200 bg-white py-1 text-xs shadow-lg">
+          <button type="button" class="block w-full px-3 py-1.5 text-left hover:bg-gray-50"
+                  hx-get="{% url 'workbench_drawer' action='map_test' %}?{{ link_qs }}&requirement={{ id }}"
+                  hx-target="#wb-drawer" hx-swap="innerHTML" @click="open=false">Map existing test</button>
+          <button type="button" class="block w-full px-3 py-1.5 text-left hover:bg-gray-50"
+                  hx-get="{% url 'workbench_drawer' action='new_test' %}?{{ link_qs }}&requirement={{ id }}"
+                  hx-target="#wb-drawer" hx-swap="innerHTML" @click="open=false">Create &amp; map new test</button>
+          <button type="button" class="block w-full px-3 py-1.5 text-left hover:bg-gray-50"
+                  hx-get="{% url 'workbench_drawer' action='map_check' %}?{{ link_qs }}&requirement={{ id }}"
+                  hx-target="#wb-drawer" hx-swap="innerHTML" @click="open=false">Map existing check</button>
+          <button type="button" class="block w-full px-3 py-1.5 text-left hover:bg-gray-50"
+                  hx-get="{% url 'workbench_drawer' action='new_check' %}?{{ link_qs }}&requirement={{ id }}"
+                  hx-target="#wb-drawer" hx-swap="innerHTML" @click="open=false">Create &amp; map new check</button>
+        </div>
+      </div>
+    {% elif kind == 'test' %}
+      <button type="button"
+              hx-get="{% url 'workbench_drawer' action='new_check' %}?{{ link_qs }}&test={{ id }}"
+              hx-target="#wb-drawer" hx-swap="innerHTML"
+              class="invisible mr-1 rounded px-1.5 text-xs text-blue-600 hover:bg-blue-50 group-hover:visible"
+              title="Add check">+</button>
+    {% endif %}
+  </div>
+
+  {% if node.has_children %}
+    <ul x-show="open" x-ref="children" class="ml-2 border-l border-gray-100"></ul>
+  {% endif %}
+</li>
+{% endwith %}

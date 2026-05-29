@@ -1,0 +1,48 @@
+{# Slide-over drawer. Replaces #wb-drawer; closed by clearing #wb-drawer innerHTML. #}
+<div x-data="{ open: true }" x-init="$nextTick(() => open = true)"
+     class="fixed inset-0 z-50"
+     @keydown.escape.window="open = false; setTimeout(() => document.getElementById('wb-drawer').innerHTML='', 200)">
+
+  <div x-show="open" x-transition.opacity
+       class="absolute inset-0 bg-black/30"
+       @click="open = false; setTimeout(() => document.getElementById('wb-drawer').innerHTML='', 200)"></div>
+
+  <div x-show="open"
+       x-transition:enter="transition transform ease-out duration-200"
+       x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+       x-transition:leave="transition transform ease-in duration-150"
+       x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+       class="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-xl">
+    <div class="flex h-16 items-center justify-between border-b border-gray-200 px-5">
+      <h3 class="text-base font-semibold text-gray-900">{{ title }}</h3>
+      <button type="button"
+              @click="open = false; setTimeout(() => document.getElementById('wb-drawer').innerHTML='', 200)"
+              class="rounded-md p-1 text-gray-500 hover:bg-gray-100">✕</button>
+    </div>
+
+    <form hx-post="{{ action_url }}" hx-target="#wb-drawer" hx-swap="innerHTML"
+          class="flex h-[calc(100%-4rem)] flex-col">
+      {% csrf_token %}
+      <div class="flex-1 space-y-4 overflow-auto p-5">
+        {% if form.non_field_errors %}
+          <div class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{ form.non_field_errors }}</div>
+        {% endif %}
+        {% for field in form %}
+          <div>
+            <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-600">{{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}</label>
+            {{ field }}
+            {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
+            {% if field.errors %}<p class="mt-1 text-xs text-red-600">{{ field.errors|join:", " }}</p>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="flex justify-end gap-2 border-t border-gray-200 px-5 py-3">
+        <button type="button"
+                @click="open = false; setTimeout(() => document.getElementById('wb-drawer').innerHTML='', 200)"
+                class="rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium hover:bg-gray-50">Cancel</button>
+        <button type="submit"
+                class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">{{ submit_label }}</button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -2,8 +2,9 @@ import csv
 
 from django.contrib import messages
 from django.db.models import Count, Q
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from closure.forms import (
     CheckForm,
@@ -28,6 +29,7 @@ from closure.models import (
     RequirementTestMapping,
     Test,
 )
+from closure.services import workbench as workbench_service
 from closure.services.generator import create_generated_package
 from closure.services.ingest import EvidenceIngestError, ingest_evidence_report
 
@@ -282,4 +284,290 @@ def export_requirements_csv(request):
         )
     return response
 
-# Create your views here.
+
+# ---------------------------------------------------------------------------
+# Workbench
+# ---------------------------------------------------------------------------
+
+_NODE_KINDS = {"category", "requirement", "test", "check"}
+
+
+def _wb_context(request):
+    """Resolve project, mode, run, view from query string."""
+    projects = list(Project.objects.order_by("name"))
+    project = None
+    project_slug = request.GET.get("project")
+    if project_slug:
+        project = next((p for p in projects if p.slug == project_slug), None)
+    if project is None and projects:
+        project = projects[0]
+
+    mode = request.GET.get("mode", "def")
+    if mode not in ("def", "evidence"):
+        mode = "def"
+
+    view = request.GET.get("view", "req")
+    if view not in ("req", "test"):
+        view = "req"
+
+    run = None
+    runs = []
+    if project is not None:
+        runs = list(project.regression_runs.order_by("-uploaded_at")[:50])
+        run_id = request.GET.get("run")
+        if mode == "evidence":
+            if run_id:
+                run = next((r for r in runs if str(r.pk) == run_id), None)
+            if run is None and runs:
+                run = runs[0]
+
+    selected = request.GET.get("node") or ""
+    return {
+        "projects": projects,
+        "project": project,
+        "mode": mode,
+        "view": view,
+        "runs": runs,
+        "run": run,
+        "selected_node": selected,
+    }
+
+
+def _qs_for_links(ctx, **overrides):
+    """Build query-string preserving project/mode/view/run, with overrides."""
+    parts = {}
+    if ctx.get("project"):
+        parts["project"] = ctx["project"].slug
+    parts["mode"] = ctx["mode"]
+    parts["view"] = ctx["view"]
+    if ctx.get("run"):
+        parts["run"] = ctx["run"].pk
+    for k, v in overrides.items():
+        if v is None:
+            parts.pop(k, None)
+        else:
+            parts[k] = v
+    return "&".join(f"{k}={v}" for k, v in parts.items())
+
+
+def workbench(request):
+    ctx = _wb_context(request)
+    ctx["link_qs"] = _qs_for_links(ctx)
+    ctx["link_mode_def"] = _qs_for_links(ctx, mode="def")
+    ctx["link_mode_evidence"] = _qs_for_links(ctx, mode="evidence")
+    ctx["link_view_req"] = _qs_for_links(ctx, view="req")
+    ctx["link_view_test"] = _qs_for_links(ctx, view="test")
+    return render(request, "closure/workbench/shell.html", ctx)
+
+
+def workbench_tree(request):
+    ctx = _wb_context(request)
+    overlay = workbench_service.get_overlay(ctx["run"])
+    nodes = []
+    if ctx["project"]:
+        nodes = workbench_service.project_root_children(ctx["project"], ctx["view"], overlay)
+    ctx["nodes"] = nodes
+    ctx["link_qs"] = _qs_for_links(ctx)
+    ctx["depth"] = 0
+    return render(request, "closure/workbench/_tree.html", ctx)
+
+
+def workbench_node_children(request, kind, pk):
+    if kind not in _NODE_KINDS:
+        return HttpResponseBadRequest("bad kind")
+    ctx = _wb_context(request)
+    overlay = workbench_service.get_overlay(ctx["run"])
+
+    parent_req_id = request.GET.get("parent_req")
+    parent_req = None
+    if parent_req_id:
+        parent_req = Requirement.objects.filter(pk=parent_req_id).first()
+
+    if kind == "category":
+        category = get_object_or_404(RequirementCategory, pk=pk)
+        nodes = workbench_service.category_children(category, overlay)
+    elif kind == "requirement":
+        requirement = get_object_or_404(Requirement, pk=pk)
+        nodes = workbench_service.requirement_children(requirement, overlay)
+    elif kind == "test":
+        test = get_object_or_404(Test, pk=pk)
+        nodes = workbench_service.test_children(test, overlay, parent_requirement=parent_req)
+    else:
+        nodes = []
+
+    ctx["nodes"] = nodes
+    ctx["link_qs"] = _qs_for_links(ctx)
+    ctx["depth"] = int(request.GET.get("depth", "1"))
+    return render(request, "closure/workbench/_tree_children.html", ctx)
+
+
+def workbench_node_detail(request, kind, pk):
+    if kind not in _NODE_KINDS:
+        return HttpResponseBadRequest("bad kind")
+    ctx = _wb_context(request)
+    overlay = workbench_service.get_overlay(ctx["run"])
+    ctx["overlay_active"] = overlay.active
+    ctx["link_qs"] = _qs_for_links(ctx)
+
+    if kind == "category":
+        obj = get_object_or_404(RequirementCategory.objects.select_related("project", "parent"), pk=pk)
+        ctx["category"] = obj
+        ctx["children_categories"] = list(obj.children.all())
+        ctx["children_requirements"] = list(obj.requirements.all())
+        template = "closure/workbench/detail_category.html"
+    elif kind == "requirement":
+        obj = get_object_or_404(
+            Requirement.objects.select_related("project", "category"), pk=pk
+        )
+        ctx["requirement"] = obj
+        ctx["test_mappings"] = list(obj.test_mappings.select_related("test"))
+        ctx["check_mappings"] = list(
+            obj.check_mappings.select_related("verification_check", "verification_check__test")
+        )
+        ctx["evidence_history"] = list(obj.evidence.select_related("regression_run")[:20])
+        ctx["req_counts"] = overlay.requirement_counts(obj.pk)
+        ctx["req_status"] = overlay.requirement_status(obj.pk)
+        if overlay.active:
+            ctx["run_check_evidence"] = list(
+                CheckEvidence.objects.filter(
+                    regression_run=overlay.run, requirement=obj
+                ).select_related("verification_check", "test_run")
+            )
+        template = "closure/workbench/detail_requirement.html"
+    elif kind == "test":
+        obj = get_object_or_404(Test.objects.select_related("project"), pk=pk)
+        ctx["test"] = obj
+        ctx["checks"] = list(obj.checks.all())
+        ctx["requirement_mappings"] = list(obj.requirement_mappings.select_related("requirement"))
+        ctx["test_status"] = overlay.test_status(obj.pk)
+        if overlay.active:
+            ctx["run_test_runs"] = list(
+                obj.runs.filter(regression_run=overlay.run).select_related("regression_run")
+            )
+        template = "closure/workbench/detail_test.html"
+    else:  # check
+        obj = get_object_or_404(Check.objects.select_related("project", "test"), pk=pk)
+        ctx["check"] = obj
+        ctx["check_mappings"] = list(obj.requirement_mappings.select_related("requirement"))
+        ctx["check_status"] = overlay.check_aggregate_status(obj.pk)
+        if overlay.active:
+            ctx["run_evidence"] = list(
+                obj.evidence.filter(regression_run=overlay.run).select_related("requirement", "test_run")
+            )
+        template = "closure/workbench/detail_check.html"
+
+    return render(request, template, ctx)
+
+
+# ---- drawer (inline create / link) ----------------------------------------
+
+def _drawer_render(request, ctx, form, title, submit_label, action_url, success_redirect=None):
+    return render(
+        request,
+        "closure/workbench/_drawer.html",
+        {
+            **ctx,
+            "form": form,
+            "title": title,
+            "submit_label": submit_label,
+            "action_url": action_url,
+            "success_redirect": success_redirect,
+        },
+    )
+
+
+def workbench_drawer(request, action):
+    """One endpoint, multiple actions:
+
+    - new_requirement?category=<id>
+    - new_test
+    - new_check?test=<id>
+    - map_test?requirement=<id>
+    - map_check?requirement=<id>
+    """
+    ctx = _wb_context(request)
+    ctx["link_qs"] = _qs_for_links(ctx)
+    action_url = request.get_full_path()
+
+    if action == "new_requirement":
+        initial = {"project": ctx["project"]}
+        category_id = request.GET.get("category")
+        if category_id:
+            initial["category"] = category_id
+        form = RequirementForm(request.POST or None, initial=initial)
+        if request.method == "POST" and form.is_valid():
+            req = form.save()
+            return _drawer_success(request, ctx, node=f"requirement:{req.pk}")
+        return _drawer_render(request, ctx, form, "Create Requirement", "Create", action_url)
+
+    if action == "new_test":
+        initial = {"project": ctx["project"]}
+        form = TestForm(request.POST or None, initial=initial)
+        if request.method == "POST" and form.is_valid():
+            test = form.save()
+            # If launched from a requirement, also map it.
+            req_id = request.GET.get("requirement")
+            if req_id:
+                req = Requirement.objects.filter(pk=req_id).first()
+                if req:
+                    RequirementTestMapping.objects.get_or_create(requirement=req, test=test)
+            return _drawer_success(request, ctx, node=f"test:{test.pk}")
+        return _drawer_render(request, ctx, form, "Create Test", "Create", action_url)
+
+    if action == "new_check":
+        initial = {"project": ctx["project"]}
+        test_id = request.GET.get("test")
+        if test_id:
+            initial["test"] = test_id
+        form = CheckForm(request.POST or None, initial=initial)
+        if request.method == "POST" and form.is_valid():
+            check = form.save()
+            req_id = request.GET.get("requirement")
+            if req_id:
+                req = Requirement.objects.filter(pk=req_id).first()
+                if req:
+                    RequirementCheckMapping.objects.get_or_create(
+                        requirement=req, verification_check=check
+                    )
+            return _drawer_success(request, ctx, node=f"check:{check.pk}")
+        return _drawer_render(request, ctx, form, "Create Check", "Create", action_url)
+
+    if action == "map_test":
+        req_id = request.GET.get("requirement")
+        requirement = Requirement.objects.filter(pk=req_id).first() if req_id else None
+        initial = {"requirement": requirement}
+        form = RequirementTestMappingForm(request.POST or None, initial=initial)
+        if requirement is not None:
+            form.fields["test"].queryset = Test.objects.filter(project=requirement.project)
+        if request.method == "POST" and form.is_valid():
+            mapping = form.save()
+            return _drawer_success(request, ctx, node=f"test:{mapping.test_id}")
+        return _drawer_render(request, ctx, form, "Map Test to Requirement", "Map", action_url)
+
+    if action == "map_check":
+        req_id = request.GET.get("requirement")
+        requirement = Requirement.objects.filter(pk=req_id).first() if req_id else None
+        initial = {"requirement": requirement}
+        form = RequirementCheckMappingForm(request.POST or None, initial=initial)
+        if requirement is not None:
+            form.fields["verification_check"].queryset = Check.objects.filter(
+                project=requirement.project
+            ).select_related("test")
+        if request.method == "POST" and form.is_valid():
+            mapping = form.save()
+            return _drawer_success(request, ctx, node=f"check:{mapping.verification_check_id}")
+        return _drawer_render(request, ctx, form, "Map Check to Requirement", "Map", action_url)
+
+    return HttpResponseBadRequest("unknown action")
+
+
+def _drawer_success(request, ctx, node: str = ""):
+    """Empty response + HX-Trigger header to close drawer + refresh tree/detail.
+
+    HX-Trigger fires a window-level CustomEvent that the shell listens for.
+    """
+    import json as _json
+    response = HttpResponse("")
+    response["HX-Trigger"] = _json.dumps({"wb-refresh": {"node": node}})
+    return response
+

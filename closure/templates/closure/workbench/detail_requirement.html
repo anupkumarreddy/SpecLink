@@ -1,0 +1,126 @@
+{% load workbench_tags %}
+<div class="rounded-xl bg-white p-6 shadow-sm">
+  <div class="mb-4 flex items-start justify-between gap-4 border-b border-gray-200 pb-4">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Requirement</p>
+      <h2 class="mt-0.5 text-xl font-semibold text-gray-900">{{ requirement.requirement_id }}</h2>
+      <p class="mt-1 text-sm text-gray-600">{{ requirement.title }}</p>
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        {% if req_status %}<span class="rounded-full px-2 py-0.5 text-xs font-medium {{ req_status|status_pill }}">{{ req_status }}</span>{% endif %}
+        <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ requirement.priority|status_pill }}">{{ requirement.priority }}</span>
+        <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ requirement.status|status_pill }}">{{ requirement.status }}</span>
+      </div>
+    </div>
+    <a href="{{ requirement.get_absolute_url }}" class="text-xs text-gray-500 hover:underline">Open full page →</a>
+  </div>
+
+  <p class="text-sm text-gray-700 whitespace-pre-line">{{ requirement.description }}</p>
+
+  <dl class="mt-4 grid gap-3 text-sm md:grid-cols-4">
+    <div><dt class="text-gray-500">Category</dt><dd>
+      <button type="button" @click="$dispatch('wb-select', {node: 'category:{{ requirement.category.pk }}'})" class="text-blue-600 hover:underline">{{ requirement.category.code }}</button>
+    </dd></div>
+    <div><dt class="text-gray-500">Spec section</dt><dd>{{ requirement.spec_section|default:"—" }}</dd></div>
+    <div><dt class="text-gray-500">Owner</dt><dd>{{ requirement.owner|default:"—" }}</dd></div>
+    <div><dt class="text-gray-500">Project</dt><dd>{{ requirement.project.slug }}</dd></div>
+  </dl>
+
+  {% if requirement.rationale %}
+    <p class="mt-4 text-xs font-semibold uppercase text-gray-500">Rationale</p>
+    <p class="mt-1 text-sm text-gray-700 whitespace-pre-line">{{ requirement.rationale }}</p>
+  {% endif %}
+
+  {% if overlay_active and req_counts %}
+    <div class="mt-6 grid gap-3 sm:grid-cols-2">
+      <div class="rounded-lg border border-gray-200 p-3 text-sm">
+        <p class="text-xs font-semibold uppercase text-gray-500">Tests in {{ run.run_id }}</p>
+        <p class="mt-1">Passed: <b>{{ req_counts.passed_tests }}</b> / {{ req_counts.expected_tests }}</p>
+        <p>Failed: <b class="text-red-600">{{ req_counts.failed_tests }}</b></p>
+        <p>Missing: <b class="text-gray-500">{{ req_counts.missing_tests }}</b></p>
+      </div>
+      <div class="rounded-lg border border-gray-200 p-3 text-sm">
+        <p class="text-xs font-semibold uppercase text-gray-500">Checks in {{ run.run_id }}</p>
+        <p class="mt-1">Passed: <b>{{ req_counts.passed_checks }}</b> / {{ req_counts.expected_checks }}</p>
+        <p>Failed: <b class="text-red-600">{{ req_counts.failed_checks }}</b></p>
+        <p>Missing: <b class="text-gray-500">{{ req_counts.missing_checks }}</b></p>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<div id="wb-inspector" hx-swap-oob="innerHTML">
+  <section class="border-b border-gray-100 p-4">
+    <div class="mb-2 flex items-center justify-between">
+      <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Mapped Tests ({{ test_mappings|length }})</h3>
+      <button type="button"
+              hx-get="{% url 'workbench_drawer' action='map_test' %}?{{ link_qs }}&requirement={{ requirement.pk }}"
+              hx-target="#wb-drawer" hx-swap="innerHTML"
+              class="rounded px-1.5 text-xs text-blue-600 hover:bg-blue-50">+ Map</button>
+    </div>
+    <ul class="space-y-1 text-sm">
+      {% for m in test_mappings %}
+        <li class="flex items-center justify-between gap-2">
+          <button type="button" @click="$dispatch('wb-select', {node: 'test:{{ m.test.pk }}'})" class="truncate rounded px-2 py-1 text-left font-medium text-blue-600 hover:bg-gray-50">{{ m.test.test_id }}</button>
+          <span class="rounded-full px-2 py-0.5 text-xs {{ m.role|status_pill }}">{{ m.role }}</span>
+        </li>
+      {% empty %}
+        <li class="px-2 py-1 text-xs text-gray-400">None mapped.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="border-b border-gray-100 p-4">
+    <div class="mb-2 flex items-center justify-between">
+      <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Mapped Checks ({{ check_mappings|length }})</h3>
+      <button type="button"
+              hx-get="{% url 'workbench_drawer' action='map_check' %}?{{ link_qs }}&requirement={{ requirement.pk }}"
+              hx-target="#wb-drawer" hx-swap="innerHTML"
+              class="rounded px-1.5 text-xs text-blue-600 hover:bg-blue-50">+ Map</button>
+    </div>
+    <ul class="space-y-1 text-sm">
+      {% for m in check_mappings %}
+        <li>
+          <button type="button" @click="$dispatch('wb-select', {node: 'check:{{ m.verification_check.pk }}'})" class="w-full truncate rounded px-2 py-1 text-left hover:bg-gray-50">
+            <span class="font-medium text-blue-600">{{ m.verification_check.check_id }}</span>
+            <span class="ml-1 text-xs text-gray-500">{{ m.verification_check.test.test_id }}</span>
+          </button>
+        </li>
+      {% empty %}
+        <li class="px-2 py-1 text-xs text-gray-400">None mapped.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  {% if overlay_active %}
+  <section class="border-b border-gray-100 p-4">
+    <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Check evidence in {{ run.run_id }}</h3>
+    <ul class="space-y-1 text-sm">
+      {% for e in run_check_evidence %}
+        <li class="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-gray-50">
+          <span class="truncate">
+            <span class="font-medium">{{ e.check_id }}</span>
+            {% if e.test_run %}<span class="ml-1 text-xs text-gray-500">{{ e.test_run.test_name }}</span>{% endif %}
+          </span>
+          <span class="rounded-full px-2 py-0.5 text-xs {{ e.result|status_pill }}">{{ e.result }}</span>
+        </li>
+      {% empty %}
+        <li class="px-2 py-1 text-xs text-gray-400">No check evidence.</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <section class="p-4">
+    <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Recent runs</h3>
+    <ul class="space-y-1 text-sm">
+      {% for item in evidence_history %}
+        <li class="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-gray-50">
+          <a href="{{ item.regression_run.get_absolute_url }}" class="truncate text-blue-600 hover:underline">{{ item.regression_run.run_id }}</a>
+          <span class="rounded-full px-2 py-0.5 text-xs {{ item.status|status_pill }}">{{ item.status }}</span>
+        </li>
+      {% empty %}
+        <li class="px-2 py-1 text-xs text-gray-400">No evidence yet.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>

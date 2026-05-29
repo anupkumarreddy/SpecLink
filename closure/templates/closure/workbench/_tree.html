@@ -1,0 +1,18 @@
+{% load workbench_tags %}
+{% if not project %}
+  <p class="p-4 text-sm text-gray-500">Create a project to get started.</p>
+{% elif not nodes %}
+  <div class="p-4 text-sm text-gray-500">
+    {% if view == 'req' %}
+      No categories yet. Use the Django admin to add a category, then a requirement.
+    {% else %}
+      No tests yet.
+    {% endif %}
+  </div>
+{% else %}
+  <ul class="space-y-0.5">
+    {% for node in nodes %}
+      {% include "closure/workbench/_tree_node.html" with node=node depth=0 link_qs=link_qs %}
+    {% endfor %}
+  </ul>
+{% endif %}

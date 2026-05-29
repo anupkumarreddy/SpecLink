@@ -26,4 +26,10 @@ urlpatterns = [
     path("runs/<int:pk>/", views.run_detail, name="run_detail"),
     path("snapshots/<int:pk>/", views.snapshot_detail, name="snapshot_detail"),
     path("exports/requirements.csv", views.export_requirements_csv, name="export_requirements_csv"),
+    # Workbench
+    path("workbench/", views.workbench, name="workbench"),
+    path("workbench/tree/", views.workbench_tree, name="workbench_tree"),
+    path("workbench/node/<str:kind>/<int:pk>/children/", views.workbench_node_children, name="workbench_node_children"),
+    path("workbench/node/<str:kind>/<int:pk>/detail/", views.workbench_node_detail, name="workbench_node_detail"),
+    path("workbench/drawer/<str:action>/", views.workbench_drawer, name="workbench_drawer"),
 ]
